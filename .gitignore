@@ -1,0 +1,7 @@
+target/
+.build/
+.kube/
+.idea/
+*.iml
+.env
+*.log

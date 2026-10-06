@@ -1,0 +1,55 @@
+# Traffic generator. deploy.sh fills TRAFFIC_CALLS with the services for this run.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic
+  namespace: otel-java-v3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic
+  template:
+    metadata:
+      labels:
+        app: traffic
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -u
+              hit() {
+                name="$1"
+                case "$name" in
+                  orders-legacy) sku=legacy ;;
+                  orders-v3) sku=preview ;;
+                  orders-v3-chart) sku=chart ;;
+                  *) sku=widget ;;
+                esac
+                echo "---- $name ----"
+                curl -sS -m 10 -X POST "http://$name/orders" \
+                  -H 'content-type: application/json' \
+                  -d "{\"sku\":\"$sku\",\"qty\":2}" || echo "post failed"
+                echo
+                curl -sS -m 10 "http://$name/orders" || echo "list failed"
+                echo
+                curl -sS -m 10 -X PUT "http://$name/orders/1" \
+                  -H 'content-type: application/json' \
+                  -d '{"qty":3}' || echo "put failed"
+                echo
+                curl -sS -m 10 -o /dev/null -w "boom:%{http_code}\n" "http://$name/orders/boom" || true
+              }
+              sleep 5
+              while true; do
+              ${TRAFFIC_CALLS}
+                sleep 10
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi

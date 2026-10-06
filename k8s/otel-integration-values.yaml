@@ -1,0 +1,5 @@
+# Stock otel-integration settings plus the two required globals.
+# Rendered by deploy.sh. Java auto-instrumentation stays at the chart default (disabled).
+global:
+  domain: ${CX_DOMAIN}
+  clusterName: ${CX_CLUSTER_NAME}
